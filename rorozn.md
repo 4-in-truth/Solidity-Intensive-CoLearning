@@ -510,4 +510,115 @@ contract people is Adam, Eve {
 
 ### 2024.09.23
 
+14. 抽象合约&接口
+
+- 抽象合约：至少有一个 virtual 函数的，用于代码设计阶段。**抽象合约不能被直接部署**
+
+```solidity
+abstract contract InsertionSort{
+    function insertionSort(uint[] memory a) public pure virtual returns(uint[] memory);
+}
+```
+
+- 接口：不实现任何功能，合约框架，编译接口可以得到合约 abi，比如 IERC721。只需要知道接口就可以交互而不需要知道具体代码实现
+
+```solidity
+interface IERC721 is IERC165 {
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+    function balanceOf(address owner) external view returns (uint256 balance);
+    function ownerOf(uint256 tokenId) external view returns (address owner);
+    function safeTransferFrom(address from, address to, uint256 tokenId) external;
+    function transferFrom(address from, address to, uint256 tokenId) external;
+    function approve(address to, uint256 tokenId) external;
+    function getApproved(uint256 tokenId) external view returns (address operator);
+    function setApprovalForAll(address operator, bool _approved) external;
+    function isApprovedForAll(address owner, address operator) external view returns (bool);
+    function safeTransferFrom( address from, address to, uint256 tokenId, bytes calldata data) external;
+}
+```
+
+使用接口：
+
+```solidity
+contract interactBAYC {
+    // 利用BAYC地址创建接口合约变量（ETH主网）
+    IERC721 BAYC = IERC721(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+
+    // 通过接口调用BAYC的balanceOf()查询持仓量
+    function balanceOfBAYC(address owner) external view returns (uint256 balance){
+        return BAYC.balanceOf(owner);
+    }
+
+    // 通过接口调用BAYC的safeTransferFrom()安全转账
+    function safeTransferFromBAYC(address from, address to, uint256 tokenId) external{
+        BAYC.safeTransferFrom(from, to, tokenId);
+    }
+}
+```
+
+15. 异常
+
+- error 必须搭配 revert（回退）命令使用。推荐使用
+
+```solidity
+function transferOwner1(uint256 tokenId, address newOwner) public {
+    if(_owners[tokenId] != msg.sender){
+        revert TransferNotOwner();
+        // revert TransferNotOwner(msg.sender);
+    }
+    _owners[tokenId] = newOwner;
+}
+```
+
+- Require 是 solidity 0.8 版本之前抛出异常的常用方法，缺点就是 gas 随着描述异常的字符串长度增加，比 error 命令要高。使用方法：require(检查条件，"异常的描述")，
+- assert 断言。一般用于 debug。用法：assrt(检查条件)，不能解释异常原因。Solidity **0.8.0 之前的版本**，assert 抛出的是一个 panic exception，会把剩余的 gas 全部消耗，**不会返还**。
+
+### 2024.09.24
+
+16. 函数重载：名字相同但入参不同，调用时根据不同参数选择执行哪个函数
+
+- 装饰器 modifier 不能重载
+- 如果出现多个匹配的重载函数，则会报错。
+
+17. 库合约
+
+- 一系列函数集合，方便实用，减少 gas，关键字 library。
+  - 不能存在状态变量
+  - 不能够继承或被继承
+  - 不能接收以太币
+  - 不可以被销毁
+  - **尚未理解的：** 库合约重的函数可见性如果被设置为 public 或者 external，则在调用函数时会触发一次 delegatecall。而如果被设置为 internal，则不会引起。对于设置为 private 可见性的函数来说，其仅能在库合约中可见，在其他合约中不可用。
+- 使用 常用的有：  
+   Strings：将 uint256 转换为 String  
+   Address：判断某个地址是否为合约地址  
+   Create2：更安全的使用 Create2 EVM opcode  
+   Arrays：跟数组相关的库合约
+
+```solidity
+// 方法一： 利用using for指令
+using Strings for uint256;
+function getString1(uint256 _number) public pure returns(string memory){
+    // 库合约中的函数会自动添加为uint256型变量的成员
+    return _number.toHexString();
+}
+
+// 方法二： 直接通过库合约名调用
+function getString2(uint256 _number) public pure returns(string memory){
+    return Strings.toHexString(_number);
+}
+```
+
+18. 跨文件引用 import
+
+- 在声明版本号之后，在其余代码之前。  
+  可以引用的内容：  
+  文件相对位置（import './Yeye.sol';）  
+  网址源文件（import 'https://xxx/xxx.sol'）  
+  npm(import @openzeppelin/xxx.sol)  
+  全局符号（import {xxx as yyy} from './xxx.sol'
+
+### 2024.09.25
+
 <!-- Content_END -->

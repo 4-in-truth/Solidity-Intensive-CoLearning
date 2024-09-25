@@ -13,49 +13,112 @@ timezone: Asia/Shanghai
 必须的，恰好有一段时间可以用于本次学习活动中；
    
 ## Notes
-
 <!-- Content_START -->
 
+### 2024.09.25
+- WTF101章节内容：抽象合约和接口、异常
+- WTF102章节内容：重载、库合约、Import
+
+#### 笔记
+
+- 接口规则
+    1. 不能包含状态变量
+    2. 不能包含构造函数
+    3. 不能继承除接口外的其他合约
+    4. 所有函数都必须是external且不能有函数体
+    5. 继承接口的非抽象合约必须实现接口定义的所有功能
+- 异常
+
+  1.error
+    
+    ```solidity
+    error TransferNotOwner();
+    revert TransferNotOwner();
+    //省gas
+    ```
+    
+    2.Require
+    
+    ```solidity
+    require(_owners[tokenId] == msg.sender, "Transfer Not Owner");
+    //随着字符串增加gas增加
+    ```
+    
+    3.Assert
+    
+    ```solidity
+    assert(_owners[tokenId] == msg.sender);
+    //只能抛出异常
+    ```
+
+### 2024.09.24
+- WTF101章节内容：映射类型、变量初始值、常数、控制流、构造函数和修饰器、事件、继承
+#### 笔记
+
+- map
+  
+1、key仅支持内置值类型，value支持struct
+
+2、存储位置为storage，这里的map只用来记录关系，而不是一个类型；
+
+3、当映射声明为public 时候，自动创建getter函数
+
+4、val[key] = val
+
+- constant和immutable
+
+数值变量可以声明`constant`和`immutable`；
+
+`string`和`bytes`可以声明为`constant`，但不能为`immutable`。
+- EVM Log
+
+用于存储Solidity Event，是函数和区块链之间的模块；
+
+Topics: 描述事件,事件的签名（哈希）+最多3个indexed参数（256bit）
+
+data: 事件的值，可存储任意大小的数据；
+- 构造函数的继承
+
+```Solidity
+abstract contract A {
+    uint public a;
+
+    constructor(uint _a) {
+        a = _a;
+    }
+}
+//调用父合约的构造函数
+contract C is A {
+	constructor(uint _c) A(_c * _c) {}
+}//这里是C继承了父合约的构造函数，将_c为参数，_c*_c作为父合约构造函数的参数调用；
+```
+
 ### 2024.09.23
+- WTF101章节：HelloWeb3（三行代码）、数值类型、函数类型、函数输出、变量数据存储、引用类型
+#### 笔记内容
+uint256和uint实际上是一样的，都是0到2^256-1这个范围区间内；
+一个字符2个字节；
 
-學習內容: 
-- A 系列的 Ethernaut CTF, 之前做了差不多了. POC: [ethernaut-foundry-solutions](https://github.com/SunWeb3Sec/ethernaut-foundry-solutions)
-- A 系列的 QuillAudit CTF 題目的網站關掉了, 幫大家收集了[題目](./Writeup/SunSec/src/QuillCTF/), 不過還是有幾題沒找到. 有找到題目的人可以在發出來.
-- A 系列的 DamnVulnerableDeFi 有持續更新, 題目也不錯. [Damn Vulnerable DeFi](https://github.com/theredguild/damn-vulnerable-defi/tree/v4.0.0).
-- 使用 [Foundry](https://book.getfoundry.sh/) 在本地解題目, 可以參考下面 RoadClosed 為例子
-- ``forge test --match-teat testRoadClosedExploit -vvvv``
-#### [QuillAudit CTF - RoadClosed](./Writeup/SunSec/src/QuillCTF/RoadClosed.sol)
-```
-  function addToWhitelist(address addr) public {
-    require(!isContract(addr), "Contracts are not allowed");
-    whitelistedMinters[addr] = true;
-  }
+> 四种函数可见性说明符，共有4种。
+> 
+> - **`public`**：内部和外部均可见。
+> - **`private`**：只能从本合约内部访问，继承的合约也不能使用。
+> - **`external`**：只能从合约外部访问（但内部可以通过 **`this.f()`** 来调用，**`f`**是函数名）。
+> - **`internal`**: 只能从合约内部访问，继承的合约可以用。（默认状态变量的可见性）
 
-  function changeOwner(address addr) public {
-    require(whitelistedMinters[addr], "You are not whitelisted");
-    require(msg.sender == addr, "address must be msg.sender");
-    require(addr != address(0), "Zero address");
-    owner = addr;
-  }
+> Pure和View、Default
+> 针对的是修改链上state的权限
+> - `Pure` 不能读、不能写
+> - `View` 只能读、不能写
+> - `Default` 能读、能写
 
-  function pwn(address addr) external payable {
-    require(!isContract(msg.sender), "Contracts are not allowed");
-    require(msg.sender == addr, "address must be msg.sender");
-    require(msg.sender == owner, "Must be owner");
-    hacked = true;
-  }
+> 数据位置：
+> 
+> - **`storage`**:合约里的状态变量默认都是`storage`，存储在链上。
+> - **`memory`**：函数里的参数和临时变量一般用**`memory`**，存储在内存中，不上链。尤其是如果返回数据类型是变长的情况下，必须加memory修饰，例如：string, bytes, array和自定义结构。|
+> - **`calldata`**：和`memory`类似，存储在内存中，不上链。与`memory`的不同点在于`calldata`变量不能修改（`immutable`），一般用于函数的参数。例子：
 
-  function pwn() external payable {
-    require(msg.sender == pwner);
-    hacked = true;
-  }
-```
-- 解決這個題目需要成為合約的 owner 和 hacked = true.
-- On-chain: 可以透過 ``cast send`` 或是 forge script 來解.
-- Local: 透過 forge test 通常是在local解題, 方便 debug.
-- RoadClosed 為例子我寫了2個解題方式. testRoadClosedExploit 和 testRoadClosedContractExploit (因為題目有檢查msg.sender是不是合約, 所以可以透過constructor來繞過 isContract)
-- [POC](./Writeup/SunSec/test/QuillCTF/RoadClosed.t.sol) 
+memory修饰的数组的大小为定长类型
 
-### 
 
 <!-- Content_END -->
